@@ -77,7 +77,6 @@ class QLearningAgent(Agent):
         self._last_state = None
         self._last_action = None
 
-    @property
     def exploration_rate(self):
         return self.epsilon
 

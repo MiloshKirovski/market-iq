@@ -1,0 +1,10 @@
+matchup,agent_a,agent_b,avg_price_a,avg_price_b,avg_profit_a,avg_profit_b,collusion_index,price_var_a,price_var_b,convergence_round,late_game_collusion_index
+Q-Learner vs Q-Learner,Q-Learner,Q-Learner,1.5794,1.5794,0.2897,0.2897,0.5794,0.1152,0.1152,-1,0.6036
+Q-Learner vs Greedy,Q-Learner,Greedy,1.5594,1.4961,0.0596,0.3271,0.5278,0.1503,0.3238,415,0.6768
+Random vs Random,Random,Random,1.493,1.4996,0.1613,0.1566,0.4963,0.2263,0.2235,-1,0.492
+Q-Learner vs Random,Q-Learner,Random,1.3502,1.5002,0.1093,0.1151,0.4252,0.2047,0.2071,-1,0.4082
+LLM vs Random,LLM,Random,1.1226,1.5179,0.1043,0.0076,0.3203,0.0491,0.0333,-1,0.3261
+LLM vs Q-Learner,LLM,Q-Learner,1.0982,1.5042,0.083,0.0087,0.3012,0.0426,0.0398,-1,0.3332
+LLM vs LLM,LLM,LLM,1.1136,1.1141,0.0489,0.0463,0.1139,0.0297,0.0304,21,0.1021
+LLM vs Greedy,LLM,Greedy,1.1362,1.0694,0.0048,0.0604,0.1028,0.03,0.0349,82,0.1032
+Greedy vs Greedy,Greedy,Greedy,1.0075,1.0075,0.0038,0.0038,0.0075,0.0358,0.0358,33,0.0

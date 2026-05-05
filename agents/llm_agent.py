@@ -72,7 +72,7 @@ class LLMAgent(Agent):
                     "temperature": 0.7,
                 },
             )
-            raw = response["messages"]["content"].strip()
+            raw = response["message"]["content"].strip()
             chosen = self._parse_price(raw, price_grid)
         except Exception as e:
             print(f"[LLMAgent] Ollama error: {e}, falling back to midpoint price")
