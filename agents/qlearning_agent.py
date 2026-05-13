@@ -53,7 +53,7 @@ class QLearningAgent(Agent):
         self.last_price = price
         return price
 
-    def update(self, my_price, opp_price, my_profit, opp_profit):
+    def update(self, my_profit):
         if self._last_state is None:
             return
 
@@ -62,7 +62,7 @@ class QLearningAgent(Agent):
         s_my, s_opp = self._last_state
         a = self._last_action
 
-        reward = my_price
+        reward = my_profit
 
         current_q = self.Q[s_my, s_opp, a]
         next_best = np.max(self.Q[a, :, :])

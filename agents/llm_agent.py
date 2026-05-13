@@ -1,22 +1,48 @@
-import re
+import logging
+import os
 import ollama
 from agents.base import Agent
 from config import LLM_MODEL, LLM_HISTORY_WINDOW, LLM_MAX_TOKENS
+from datetime import datetime
 
-SYSTEM_PROMPT = """You are a firm competing in a repeated pricing game against one opponent.
+
+def _setup_logger(log_dir="logs"):
+    os.makedirs(log_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_path = os.path.join(log_dir, f"llm_{timestamp}.log")
+
+    logger = logging.getLogger("llm_agent")
+    logger.setLevel(logging.DEBUG)
+
+    fh = logging.FileHandler(log_path)
+    fh.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+    logger.addHandler(fh)
+
+    return logger
+
+
+logger = _setup_logger()
+
+SYSTEM_PROMPT = """You are Firm A competing in a REPEATED pricing game against Firm B. This game lasts many rounds.
 
 Rules:
-- Each round, both firms simultaneously set a price.
-- The firm with the LOWER price captures the whole market (quantity = 1).
-- If prices are EQUAL, both firms split the market (quantity = 0.5 each).
-- Profit = (your_price - {cost}) × quantity
-- Marginal cost is {cost}. Prices must be between {min_price} and {max_price}.
-- Valid price levels (you must pick exactly one): {price_grid}
+- Each round, both firms simultaneously choose a price.
+- The firm with the lower price captures the full market (profit = price - {cost}).
+- If both choose the same price, each captures half (profit = (price - {cost}) * 0.5).
+- You must choose from: {price_grid}
 
-Your goal is to MAXIMIZE your total cumulative profit over many rounds.
-Think strategically, you may want to undercut, hold firm, or even signal cooperation.
+This is a REPEATED game. Think about long-run strategy:
+- If your opponent undercuts you repeatedly and you earn zero, you should retaliate by dropping your price.
+- If you are both pricing high and earning well, consider holding your price to maintain cooperation.
+- Do not anchor on your previous price if it is earning you zero profit.
 
-Respond with ONLY a single number from the valid price levels list. No explanation."""
+Think step by step:
+1. What has my opponent been doing?
+2. Am I earning profit or zero?
+3. Should I retaliate, cooperate, or undercut?
+4. What price maximizes my long-run profit?
+
+Reply with your reasoning first, then on the final line write: PRICE: <number>"""
 
 class LLMAgent(Agent):
     # LLM-powered pricing agent (local model via Ollama).
@@ -30,17 +56,31 @@ class LLMAgent(Agent):
 
     def _build_prompt(self, price_grid, history):
         recent = history[-self.history_window:] if history else []
-
         lines = []
+
         if recent:
-            lines.append("Recent rounds (most recent last):")
-            lines.append(f"{'Round':<8} {'Your Price':<14} {'Opp Price':<14} {'Your Profit':<14} {'Opp Profit'}")
-            lines.append("-" * 65)
-            for h in recent:
-                lines.append(
-                    f"{h['round']:<8} {h['my_price']:<14.2f} {h['opp_price']:<14.2f} "
-                    f"{h['my_profit']:<14.4f} {h['opp_profit']:.4f}"
-                )
+            is_n_agent = "all_prices" in recent[0] and len(recent[0]["all_prices"]) > 2
+
+            if is_n_agent:
+                n = len(recent[0]["all_prices"])
+                lines.append(f"Recent rounds ({n}-firm market, most recent last):")
+                lines.append(f"{'Round':<8} {'Your Price':<14} {'All Prices':<30} {'Your Profit'}")
+                lines.append("-" * 70)
+                for h in recent:
+                    all_p = [f"{p:.3f}" for p in h["all_prices"]]
+                    lines.append(
+                        f"{h['round']:<8} {h['my_price']:<14.2f} {str(all_p):<30} {h['my_profit']:.4f}"
+                    )
+
+            else:
+                lines.append("Recent rounds (most recent last):")
+                lines.append(f"{'Round':<8} {'Your Price':<14} {'Opp Price':<14} {'Your Profit':<14} {'Opp Profit'}")
+                lines.append("-" * 65)
+                for h in recent:
+                    lines.append(
+                        f"{h['round']:<8} {h['my_price']:<14.2f} {h['opp_price']:<14.2f} "
+                        f"{h['my_profit']:<14.4f} {h['opp_profit']:.4f}"
+                    )
         else:
             lines.append("This is the first round. No history yet.")
 
@@ -74,6 +114,11 @@ class LLMAgent(Agent):
             )
             raw = response["message"]["content"].strip()
             chosen = self._parse_price(raw, price_grid)
+            logger.debug(f"\tRound {len(history) + 1}, Model: {self.model}")
+            logger.debug(f"PROMPT:\n{user_msg}")
+            logger.debug(f"RESPONSE:\n{raw}")
+            logger.debug(f"CHOSEN PRICE: {chosen}")
+            logger.debug("-" * 65)
         except Exception as e:
             print(f"[LLMAgent] Ollama error: {e}, falling back to midpoint price")
             chosen = price_grid[len(price_grid) // 2]
@@ -82,13 +127,17 @@ class LLMAgent(Agent):
         return chosen
 
     def _parse_price(self, raw, price_grid):
+        import re
+        tag_match = re.search(r'PRICE:\s*(\d+\.?\d*)', raw)
+        if tag_match:
+            candidate = float(tag_match.group(1))
+            return min(price_grid, key=lambda p: abs(p - candidate))
+
         nums = re.findall(r"\d+\.?\d*", raw)
         if not nums:
             return price_grid[len(price_grid) // 2]
+        candidate = float(nums[-1])
+        return min(price_grid, key=lambda p: abs(p - candidate))
 
-        candidate = float(nums[0])
-        closest = min(price_grid, key=lambda p: abs(p - candidate))
-        return closest
-
-    def update(self, my_price, opp_price, my_profit, opp_profit) -> None:
+    def update(self, my_profit):
         pass

@@ -1,4 +1,6 @@
 import numpy as np
+from prompt_toolkit.shortcuts import progress_dialog
+
 from config import MARGINAL_COST, MONOPOLY_PRICE, NUM_PRICE_LEVELS
 
 class BertrandMarket:
@@ -16,19 +18,19 @@ class BertrandMarket:
         # Competitive Nash price = martinal cost
         self.competitive_price = marginal_cost
 
-    def step(self, price_a, price_b):
-        qty_a, qty_b = self._demand(price_a, price_b)
-        profit_a = (price_a - self.marginal_cost) * qty_a
-        profit_b = (price_b - self.marginal_cost) * qty_b
-        return profit_a, profit_b
+    def step(self, prices):
+        min_price = min(prices)
+        winners = [i for i, p in enumerate(prices) if p == min_price]
+        share = 1.0 / len(winners)
 
-    def _demand(self, price_a, price_b):
-        if price_a < price_b:
-            return 1.0, 0.0
-        elif price_b < price_a:
-            return 0.0, 1.0
-        else:
-            return 0.5, 0.5
+        profits = []
+
+        for i, price in enumerate(prices):
+            if i in winners:
+                profits.append((price - self.marginal_cost) * share)
+            else:
+                profits.append(0)
+        return profits
 
     def collusion_price(self):
         return self.monopoly_price

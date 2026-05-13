@@ -8,7 +8,7 @@ class Agent:
         # history - list of dicts with past round data
         raise NotImplementedError(f"{self.__class__.__name__} must implement choose_price()")
 
-    def update(self, my_price, opp_price, my_profit, opp_profit):
+    def update(self, my_profit):
         # Updating internal state after observing round outcome (after both agents chose price)
         raise NotImplementedError(f"{self.__class__.__name__} must implement update()")
 

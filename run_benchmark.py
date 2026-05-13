@@ -1,14 +1,16 @@
 import os
+import pandas as pd
 
 from simulation.market import BertrandMarket
-from simulation.runner import run_matchup
+from simulation.runner import run_matchup, run_n_agent_matchup
 from analysis.metrics import records_to_dataframe, compute_benchmark_table, late_game_collusion
 
 from agents import RandomAgent, GreedyAgent, QLearningAgent, LLMAgent
+from config import NUM_RUNS, DATA_DIR, NUM_ROUNDS
 
-from config import NUM_RUNS, DATA_DIR
 
 def main():
+    print("2-AGENTS EXPERIMENT\n")
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
@@ -20,7 +22,7 @@ def main():
         (QLearningAgent, RandomAgent, False),
 
         (GreedyAgent, GreedyAgent, False),
-        (RandomAgent, RandomAgent, False),
+        (GreedyAgent, RandomAgent, False),
 
         (RandomAgent, RandomAgent, False),
 
@@ -48,6 +50,40 @@ def main():
     df_summary.to_csv(f"{DATA_DIR}/results.csv", index=False)
 
     print(df_summary.to_string(index=False))
+
+
+    print("\nN-AGENTS EXPERIMENT\n")
+    n_agent_configs = [
+        [QLearningAgent, QLearningAgent, QLearningAgent],
+        [QLearningAgent, QLearningAgent, QLearningAgent, QLearningAgent, QLearningAgent],
+        [QLearningAgent, QLearningAgent, GreedyAgent],
+        [LLMAgent, QLearningAgent, QLearningAgent],
+        [LLMAgent, LLMAgent, QLearningAgent],
+        [LLMAgent, QLearningAgent, GreedyAgent],
+    ]
+
+    n_agent_results = []
+    for config in n_agent_configs:
+        records = run_n_agent_matchup(config, market, num_runs=3, num_rounds=500)
+        n_agent_results.extend(records)
+
+    rows = []
+    for rec in n_agent_results:
+        for i, (name, price, profit) in enumerate(zip(rec["agent_names"], rec["prices"], rec["profits"])):
+            rows.append({
+                "run": rec["run"],
+                "round": rec["round"],
+                "n_agents": rec["n_agents"],
+                "config": str(rec["agent_names"]),
+                "agent": name,
+                "agent_idx": i,
+                "price": price,
+                "profit": profit,
+                "avg_market_price": rec["avg_price"],
+            })
+
+    pd.DataFrame(rows).to_csv(f"{DATA_DIR}/n_agent_results.csv", index=False)
+
 
 if __name__ == "__main__":
     main()

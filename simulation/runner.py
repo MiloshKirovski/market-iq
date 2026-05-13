@@ -59,10 +59,10 @@ def run_game(agent_a, agent_b, market, num_rounds, run_id):
         price_a = agent_a.choose_price(market.price_grid, history_a)
         price_b = agent_b.choose_price(market.price_grid, history_b)
 
-        profit_a, profit_b = market.step(price_a, price_b)
+        profit_a, profit_b = market.step([price_a, price_b])
 
-        agent_a.update(price_a, price_b, profit_a, profit_b)
-        agent_b.update(price_b, price_a, profit_b, profit_a)
+        agent_a.update(profit_a)
+        agent_b.update(profit_b)
 
         record = RoundRecord(
             run=run_id,
@@ -122,3 +122,53 @@ def run_matchup(agent_a_cls, agent_b_cls, market, num_runs, is_llm_game):
 
     return result
 
+
+def run_n_agent_game(agents, market, num_rounds, run_id):
+    n = len(agents)
+    histories = [[] for _ in range(n)]
+    records = []
+
+    for r in range(num_rounds):
+        prices = [agent.choose_price(market.price_grid, histories[i]) for i, agent in enumerate(agents)]
+        profits = market.step(prices)
+
+        for i, agent in enumerate(agents):
+            opp_prices = [prices[j] for j in range(n) if j!=i]
+            avg_opp_price = sum(opp_prices) / len(opp_prices)
+            agent.update(profits[i])
+
+            histories[i].append({
+                "round": r + 1,
+                "my_price": prices[i],
+                "opp_price": avg_opp_price,
+                "all_prices": prices,
+                "my_profit": profits[i],
+                "opp_profit": sum(profits) - profits[i],
+            })
+
+        avg_price = sum(prices) / n
+        print(f"Round {r+1}: prices={[f'{p:.2}' for p in prices]} "
+              f"profits={[f'{p:.2f}' for p in profits]} avg={avg_price:.2f}")
+
+        records.append({
+            "run": run_id,
+            "round": r + 1,
+            "n_agents": n,
+            "prices": prices,
+            "profits": profits,
+            "avg_price": avg_price,
+            "agent_names": [a.name for a in agents],
+        })
+
+    return records
+
+
+def run_n_agent_matchup(agent_classes, market, num_runs, num_rounds):
+    names = [cls().name for cls in agent_classes]
+    print(f"\nN-Agent matchup: {names} ({num_runs} runs * {num_rounds} rounds)")
+    all_records = []
+    for run in range(num_runs):
+        agents = [cls() for cls in agent_classes]
+        records = run_n_agent_game(agents, market, num_rounds, run)
+        all_records.extend(records)
+    return all_records

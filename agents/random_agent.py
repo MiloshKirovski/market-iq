@@ -11,5 +11,5 @@ class RandomAgent(Agent):
         self.last_price = price
         return price
 
-    def update(self, my_price, opp_price, my_profit, opp_profit):
+    def update(self, my_profit):
         pass
