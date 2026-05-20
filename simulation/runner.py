@@ -172,3 +172,60 @@ def run_n_agent_matchup(agent_classes, market, num_runs, num_rounds):
         records = run_n_agent_game(agents, market, num_rounds, run)
         all_records.extend(records)
     return all_records
+
+
+def run_elimination_game(agent_classes, market, num_rounds, run_id, check_every=50, profit_threshold=0.5):
+    agents = [cls() for cls in agent_classes]
+    histories = {i: [] for i in range(len(agents))}
+    cumulative_profits = {i: 0.0 for i in range(len(agents))}
+    active = list(range(len(agents)))
+    records = []
+
+    for r in range(num_rounds):
+        if len(active) < 2:
+            print(f"Only one agent left at round {r+1}, stopping.")
+            break
+
+        prices_active = [agents[i].choose_price(market.price_grid, histories[i]) for i in active]
+        profits_active = market.step(prices_active)
+
+        for idx, i in enumerate(active):
+            price_i = prices_active[idx]
+            profit_i = profits_active[idx]
+            cumulative_profits[i] += profit_i
+            agents[i].update(profit_i)
+
+            avg_opp = sum(p for j, p in enumerate(prices_active) if j != idx) / (len(active) - 1)
+            histories[i].append({
+                "round": r + 1,
+                "my_price": price_i,
+                "opp_price": avg_opp,
+                "all_prices": prices_active,
+                "my_profit": profit_i,
+                "opp_profit": sum(profits_active) - profit_i,
+            })
+
+        avg_price = sum(prices_active) / len(active)
+        print(f"Round {r+1}, Active: {[agents[i].name for i in active]}, Prices: "
+              f"{[f'{p:.3f}' for p in prices_active]}, Avg: {avg_price:.3f}")
+
+        records.append({
+            "run": run_id,
+            "round": r + 1,
+            "active_agents": [agents[i].name for i in active],
+            "n_active": len(active),
+            "prices": prices_active,
+            "profits": profits_active,
+            "avg_price": avg_price,
+        })
+
+        if (r + 1) % check_every == 0:
+            worst_i = min(active, key=lambda i: cumulative_profits[i])
+            print(f"Agent {agents[worst_i].name} (idx {worst_i}) eliminated at round {r + 1} "
+                  f"with cumulative profit {cumulative_profits[worst_i]:.4f}")
+            active.remove(worst_i)
+            for i in active:
+                cumulative_profits[i] = 0.0
+
+    print(f"Survivors: {[agents[i].name for i in active]}")
+    return records, [agents[i].name for i in active]

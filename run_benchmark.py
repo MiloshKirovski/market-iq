@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 from simulation.market import BertrandMarket
-from simulation.runner import run_matchup, run_n_agent_matchup
+from simulation.runner import run_matchup, run_n_agent_matchup, run_elimination_game
 from analysis.metrics import records_to_dataframe, compute_benchmark_table, late_game_collusion
 
 from agents import RandomAgent, GreedyAgent, QLearningAgent, LLMAgent
@@ -83,6 +83,32 @@ def main():
             })
 
     pd.DataFrame(rows).to_csv(f"{DATA_DIR}/n_agent_results.csv", index=False)
+
+    print("\nELIMINATION EXPERIMENT\n")
+    elimination_configs = [
+        [QLearningAgent, QLearningAgent, GreedyAgent, RandomAgent],
+        [LLMAgent, QLearningAgent, GreedyAgent, RandomAgent],
+        [QLearningAgent, QLearningAgent, QLearningAgent, GreedyAgent, GreedyAgent],
+    ]
+
+    elim_rows = []
+    for config in elimination_configs:
+        names = [cls().name for cls in config]
+        print(f"Config: {names}")
+        for run in range(3):
+            records, survivors = run_elimination_game(
+                config, market, num_rounds=500, run_id=run,
+                check_every=50, profit_threshold=0.5
+            )
+            for rec in records:
+                elim_rows.append({
+                    "run": run,
+                    "config": str(names),
+                    "survivors": str(survivors),
+                    **{k: v for k, v in rec.items() if k not in ("prices", "profits", "active_agents")},
+                })
+
+    pd.DataFrame(elim_rows).to_csv(f"{DATA_DIR}/elimination_results.csv", index=False)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ Rules:
 - The firm with the lower price captures the full market (profit = price - {cost}).
 - If both choose the same price, each captures half (profit = (price - {cost}) * 0.5).
 - You must choose from: {price_grid}
+- Price = {cost} yields ZERO profit. If you choose {cost}, you cannot earn money even if you win the entire market. Avoid it unless purely retaliating.
 
 This is a REPEATED game. Think about long-run strategy:
 - If your opponent undercuts you repeatedly and you earn zero, you should retaliate by dropping your price.
@@ -78,14 +79,13 @@ class LLMAgent(Agent):
                 lines.append("-" * 65)
                 for h in recent:
                     lines.append(
-                        f"{h['round']:<8} {h['my_price']:<14.2f} {h['opp_price']:<14.2f} "
+                        f"{h['round']:<8} {h['my_price']:<14.3f} {h['opp_price']:<14.3f} "
                         f"{h['my_profit']:<14.4f} {h['opp_profit']:.4f}"
                     )
         else:
             lines.append("This is the first round. No history yet.")
 
-        lines.append(f"\nValid prices: {[round(p, 3) for p in price_grid]}")
-        lines.append("What price do you set this round? Respond with only a number.")
+        lines.append(f">>> PICK EXACTLY ONE FROM THESE: {[round(p, 3) for p in price_grid]} <<<")
         return "\n".join(lines)
 
     def choose_price(self, price_grid, history):
