@@ -1,0 +1,50 @@
+LLM PRICING AGENT - REASONING TRACE REPORT
+Total traces coded: 11450
+
+Behavioral label distribution (all traces):
+----------------------------------------
+  cooperation      3506  ( 30.6%)
+  retaliation      2925  ( 25.5%)
+  undercutting     2134  ( 18.6%)
+  neutral          2885  ( 25.2%)
+
+Label distribution by market type:
+----------------------------------------
+
+  duopoly  (n=5135)
+    cooperation     1359  ( 26.5%)
+    retaliation     1375  ( 26.8%)
+    undercutting    1678  ( 32.7%)
+    neutral          723  ( 14.1%)
+
+  multi  (n=6315)
+    cooperation     2147  ( 34.0%)
+    retaliation     1550  ( 24.5%)
+    undercutting     456  (  7.2%)
+    neutral         2162  ( 34.2%)
+
+Response to being undercut (deterministic):
+----------------------------------------
+
+  WAS undercut last round  (n=5129)
+    price down   3159  ( 61.6%)
+    price same    371  (  7.2%)
+    price up     1599  ( 31.2%)
+
+  was NOT undercut  (n=6281)
+    price down   1193  ( 19.0%)
+    price same    783  ( 12.5%)
+    price up     4305  ( 68.5%)
+
+  When undercut, where does the new price land vs opponent's last? (n=5129)
+    below opponent     432  (  8.4%)
+    at opponent       1193  ( 23.3%)
+    above opponent    3504  ( 68.3%)
+
+Label x price_direction cross-tab:
+----------------------------------------
+  label            initial        up      same      down
+  cooperation            0      3506         0         0
+  retaliation            0         0         0      2925
+  undercutting           0       704       471       959
+  neutral               40      1694       683       468
